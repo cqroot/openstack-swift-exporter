@@ -64,6 +64,6 @@ func main() {
         `))
 	})
 
-	logger.Info("Providing metrics at %s%s", *listenAddress, *metricPath)
+	logger.Info("Providing metrics at ", *listenAddress, *metricPath)
 	logger.Fatal(http.ListenAndServe(*listenAddress, nil))
 }
