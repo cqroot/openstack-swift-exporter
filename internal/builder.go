@@ -25,7 +25,7 @@ type SwiftInfo struct {
 
 func GetSwiftInfo(logger *logrus.Logger) *SwiftInfo {
 	configPath := "/etc/swift_exporter.json"
-	logger.Debug("Read ClusterInfo from " + configPath)
+	logger.Debug("Read SwiftInfo from " + configPath)
 
 	file, err := os.Open(configPath)
 	if err != nil {

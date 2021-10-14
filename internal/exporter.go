@@ -2,173 +2,77 @@ package internal
 
 import (
 	"sync"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
-type Exporter struct {
-	namespace  string
-	logger     *logrus.Logger
-	metrics    map[string]*prometheus.GaugeVec
-	metricsMtx sync.RWMutex
+// Namespace defines the common namespace to be used by all metrics.
+const namespace = "swift"
+
+var (
+	factories          = make(map[string]func(*logrus.Logger) Collector)
+	scrapeDurationDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "scrape", "collector_duration_seconds"),
+		"swift_exporter: Duration of a collector scrape.",
+		[]string{"collector"},
+		nil,
+	)
+	swiftInfo = SwiftInfo{}
+)
+
+// Collector is the interface a collector has to implement.
+type Collector interface {
+	// Get new metrics and expose them via prometheus registry.
+	Update(ch chan<- prometheus.Metric) error
 }
 
-type scrapeResult struct {
-	Name   string
-	Value  float64
-	Labels map[string]string
+func registerCollector(collector string, factory func(*logrus.Logger) Collector) {
+	factories[collector] = factory
+}
+
+type Exporter struct {
+	Collectors map[string]Collector
+	logger     *logrus.Logger
 }
 
 func NewSwiftExporter(logger *logrus.Logger) *Exporter {
 	exporter := &Exporter{
-		namespace: "swift",
-		logger:    logger,
+		logger:     logger,
+		Collectors: make(map[string]Collector),
 	}
 	exporter.logger.Debug("Creating exporter")
-	exporter.initGauges()
+	for name, factory := range factories {
+		exporter.Collectors[name] = factory(exporter.logger)
+	}
 
 	return exporter
 }
 
-func (exporter *Exporter) initGauges() {
-	exporter.metricsMtx.Lock()
-	defer exporter.metricsMtx.Unlock()
-
-	exporter.metrics = map[string]*prometheus.GaugeVec{}
-	exporter.metrics["account_server_status"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: exporter.namespace,
-		Name:      "account_server_status",
-		Help:      "Swift account-server reachability",
-	}, []string{"host"})
-	exporter.metrics["container_server_status"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: exporter.namespace,
-		Name:      "container_server_status",
-		Help:      "Swift container-server reachability",
-	}, []string{"host"})
-	exporter.metrics["object_server_status"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: exporter.namespace,
-		Name:      "object_server_status",
-		Help:      "Swift object-server reachability",
-	}, []string{"host"})
-	exporter.metrics["object_avail_bytes"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: exporter.namespace,
-		Name:      "object_avail_bytes",
-		Help:      "Swift object usage",
-	}, []string{"host", "device"})
-	exporter.metrics["object_used_bytes"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: exporter.namespace,
-		Name:      "object_used_bytes",
-		Help:      "Swift object usage",
-	}, []string{"host", "device"})
-	exporter.metrics["object_size_bytes"] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Namespace: exporter.namespace,
-		Name:      "object_size_bytes",
-		Help:      "Swift object usage",
-	}, []string{"host", "device"})
-}
-
 func (exporter *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	exporter.metricsMtx.RLock()
-	defer exporter.metricsMtx.RUnlock()
-
-	for _, metric := range exporter.metrics {
-		metric.Describe(ch)
-	}
+	ch <- scrapeDurationDesc
 }
 
+// Collect implements the prometheus.Collector interface.
 func (exporter *Exporter) Collect(ch chan<- prometheus.Metric) {
-	exporter.metricsMtx.Lock()
-	defer exporter.metricsMtx.Unlock()
+	swiftInfo = *GetSwiftInfo(exporter.logger)
 
-	scrapes := make(chan scrapeResult)
-	go exporter.scrape(scrapes)
-
-	for scrape := range scrapes {
-		exporter.metrics[scrape.Name].With(scrape.Labels).Set(scrape.Value)
-		ch <- exporter.metrics[scrape.Name].With(scrape.Labels)
-	}
-}
-
-func (exporter *Exporter) scrape(scrapes chan<- scrapeResult) {
 	wg := sync.WaitGroup{}
-	swiftInfo := GetSwiftInfo(exporter.logger)
-	wg.Add(len(swiftInfo.Account) + len(swiftInfo.Container) + len(swiftInfo.Object)*2)
-
-	for _, accountInfo := range swiftInfo.Account {
-		go exporter.scrapeServer(&wg, scrapes, "account_server_status", accountInfo.Host, accountInfo.Port)
+	wg.Add(len(exporter.Collectors))
+	for name, collector := range exporter.Collectors {
+		go func(name string, collector Collector) {
+			execute(name, collector, ch, exporter.logger)
+			wg.Done()
+		}(name, collector)
 	}
-	for _, containerInfo := range swiftInfo.Container {
-		go exporter.scrapeServer(&wg, scrapes, "container_server_status", containerInfo.Host, containerInfo.Port)
-	}
-	for _, objectInfo := range swiftInfo.Object {
-		go exporter.scrapeServer(&wg, scrapes, "object_server_status", objectInfo.Host, objectInfo.Port)
-		go exporter.scrapeDiskUsage(&wg, scrapes, objectInfo.Host, objectInfo.Port, objectInfo.Devices)
-	}
-
 	wg.Wait()
-	exporter.logger.Debug("Scrape finish")
-	close(scrapes)
 }
 
-func (exporter *Exporter) scrapeServer(wg *sync.WaitGroup, scrapes chan<- scrapeResult, name string, host string, port string) {
-	defer wg.Done()
+func execute(name string, collector Collector, ch chan<- prometheus.Metric, logger *logrus.Logger) {
+	begin := time.Now()
+	collector.Update(ch)
+	duration := time.Since(begin)
 
-	scrapes <- scrapeResult{
-		Name:  name,
-		Value: checkPort(host, port),
-		Labels: map[string]string{
-			"host": host,
-		},
-	}
-}
-
-func (exporter *Exporter) scrapeDiskUsage(wg *sync.WaitGroup, scrapes chan<- scrapeResult, host string, port string, devices []string) {
-	defer wg.Done()
-
-	diskUsage, err := getDiskUsage(host, port)
-	if err != nil {
-		return
-	}
-
-	for _, disk := range diskUsage {
-		if !disk["mounted"].(bool) {
-			continue
-		}
-
-		flag := false
-		for _, device := range devices {
-			if device == disk["device"] {
-				flag = true
-			}
-		}
-		if !flag {
-			continue
-		}
-
-		scrapes <- scrapeResult{
-			Name:  "object_used_bytes",
-			Value: disk["used"].(float64),
-			Labels: map[string]string{
-				"host":   host,
-				"device": disk["device"].(string),
-			},
-		}
-		scrapes <- scrapeResult{
-			Name:  "object_avail_bytes",
-			Value: disk["avail"].(float64),
-			Labels: map[string]string{
-				"host":   host,
-				"device": disk["device"].(string),
-			},
-		}
-		scrapes <- scrapeResult{
-			Name:  "object_size_bytes",
-			Value: disk["size"].(float64),
-			Labels: map[string]string{
-				"host":   host,
-				"device": disk["device"].(string),
-			},
-		}
-	}
+	ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, duration.Seconds(), name)
 }
