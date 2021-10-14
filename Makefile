@@ -7,7 +7,7 @@ build:
 
 run:
 	CGO_ENABLED=0 GOOS=${OS} GOARCH=${ARCH} go build -o .build/${OS}-${ARCH}/${BINARY_NAME} main.go
-	./.build/${OS}-${ARCH}/${BINARY_NAME}
+	./.build/${OS}-${ARCH}/${BINARY_NAME} -debug
 
 clean:
 	go clean
