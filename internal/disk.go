@@ -10,10 +10,10 @@ import (
 )
 
 type diskCollector struct {
-	logger        *logrus.Logger
-	diskUsedDesc  *prometheus.Desc
-	diskAvailDesc *prometheus.Desc
-	diskSizeDesc  *prometheus.Desc
+	logger         *logrus.Logger
+	usedBytesDesc  *prometheus.Desc
+	availBytesDesc *prometheus.Desc
+	sizeBytesDesc  *prometheus.Desc
 }
 
 func init() {
@@ -24,16 +24,16 @@ func init() {
 func NewDiskCollector(logger *logrus.Logger) Collector {
 	return &diskCollector{
 		logger: logger,
-		diskUsedDesc: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "disk", "used"),
+		usedBytesDesc: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "disk", "used_bytes"),
 			"Swift disk used.", []string{"host", "device"}, nil,
 		),
-		diskAvailDesc: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "disk", "avail"),
+		availBytesDesc: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "disk", "avail_bytes"),
 			"Swift disk avail.", []string{"host", "device"}, nil,
 		),
-		diskSizeDesc: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "disk", "size"),
+		sizeBytesDesc: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "disk", "size_bytes"),
 			"Swift disk size.", []string{"host", "device"}, nil,
 		),
 	}
@@ -67,9 +67,9 @@ func (collector *diskCollector) Update(ch chan<- prometheus.Metric) error {
 					continue
 				}
 
-				ch <- prometheus.MustNewConstMetric(collector.diskUsedDesc, prometheus.GaugeValue, disk["used"].(float64), host, disk["device"].(string))
-				ch <- prometheus.MustNewConstMetric(collector.diskAvailDesc, prometheus.GaugeValue, disk["avail"].(float64), host, disk["device"].(string))
-				ch <- prometheus.MustNewConstMetric(collector.diskSizeDesc, prometheus.GaugeValue, disk["size"].(float64), host, disk["device"].(string))
+				ch <- prometheus.MustNewConstMetric(collector.usedBytesDesc, prometheus.GaugeValue, disk["used"].(float64), host, disk["device"].(string))
+				ch <- prometheus.MustNewConstMetric(collector.availBytesDesc, prometheus.GaugeValue, disk["avail"].(float64), host, disk["device"].(string))
+				ch <- prometheus.MustNewConstMetric(collector.sizeBytesDesc, prometheus.GaugeValue, disk["size"].(float64), host, disk["device"].(string))
 			}
 		}(&wg, ch, objectInfo.Host, objectInfo.Port, objectInfo.Devices)
 	}
