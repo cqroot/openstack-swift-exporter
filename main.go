@@ -13,9 +13,10 @@ import (
 )
 
 var (
+	listenAddress = flag.String("web.listen-address", ":9150", "Address on which to expose metrics and web interface.")
 	metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
-	listenAddress = flag.String("web.listen-address", ":9150", "Address to listen on for web interface and telemetry.")
-	verbose       = flag.Bool("debug", false, "Output verbose debug information.")
+	debug         = flag.Bool("debug", false, "Output debug information.")
+	verbose       = flag.Bool("verbose", false, "Output file name and line number.")
 )
 
 func main() {
@@ -27,11 +28,15 @@ func main() {
 		TimestampFormat: "2006-01-02 15:04:05",
 	})
 
-	if *verbose {
+	if *debug {
 		logger.SetLevel(logrus.DebugLevel)
 		logger.Debug("Enabling debug output")
 	} else {
 		logger.SetLevel(logrus.InfoLevel)
+	}
+	if *verbose {
+		logger.SetReportCaller(true)
+		logger.Debug("Enabling verbose output")
 	}
 
 	cmd := exec.Command("python", "/bin/update_swift_info.py")

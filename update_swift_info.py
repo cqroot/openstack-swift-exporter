@@ -38,6 +38,8 @@ def get_hplist(builder, object=False):
     result = []
     tmp_dict = {}
     for dev in builder["devs"]:
+        if not dev:
+            continue
         if dev["ip"] not in tmp_dict:
             tmp_dict[dev["ip"]] = {}
         tmp_dict[dev["ip"]]["port"] = str(dev["port"])
