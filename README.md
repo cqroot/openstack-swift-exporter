@@ -32,10 +32,11 @@ Default is ["server"].
 ### Disk
 
 | Name                         | Description |
-| :--------------------------- | :---------- |
+|:-----------------------------|:------------|
 | swift_disk_avail_bytes       |             |
 | swift_disk_used_bytes        |             |
 | swift_disk_size_bytes        |             |
+| swift_disk_usage_bytes       |             |
 | swift_disk_total_avail_bytes |             |
 | swift_disk_total_used_bytes  |             |
 | swift_disk_total_size_bytes  |             |

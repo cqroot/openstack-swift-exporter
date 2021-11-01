@@ -14,6 +14,7 @@ type diskCollector struct {
 	usedBytesDesc       *prometheus.Desc
 	availBytesDesc      *prometheus.Desc
 	sizeBytesDesc       *prometheus.Desc
+	usageBytesDesc      *prometheus.Desc
 	totalUsedBytesDesc  *prometheus.Desc
 	totalAvailBytesDesc *prometheus.Desc
 	totalSizeBytesDesc  *prometheus.Desc
@@ -38,6 +39,10 @@ func NewDiskCollector(logger *logrus.Logger) Collector {
 		sizeBytesDesc: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "disk", "size_bytes"),
 			"Swift disk size.", []string{"host", "device"}, nil,
+		),
+		usageBytesDesc: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, "disk", "usage_bytes"),
+			"Swift disk usage.", []string{"host", "device"}, nil,
 		),
 		totalUsedBytesDesc: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "disk", "total_used_bytes"),
@@ -92,6 +97,7 @@ func (collector *diskCollector) Update(ch chan<- prometheus.Metric) error {
 				ch <- prometheus.MustNewConstMetric(collector.usedBytesDesc, prometheus.GaugeValue, disk["used"].(float64), host, disk["device"].(string))
 				ch <- prometheus.MustNewConstMetric(collector.availBytesDesc, prometheus.GaugeValue, disk["avail"].(float64), host, disk["device"].(string))
 				ch <- prometheus.MustNewConstMetric(collector.sizeBytesDesc, prometheus.GaugeValue, disk["size"].(float64), host, disk["device"].(string))
+				ch <- prometheus.MustNewConstMetric(collector.usageBytesDesc, prometheus.GaugeValue, disk["used"].(float64)/disk["avail"].(float64), host, disk["device"].(string))
 
 				chUsed <- disk["used"].(float64)
 				chAvail <- disk["avail"].(float64)
