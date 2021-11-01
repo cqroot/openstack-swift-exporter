@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -37,17 +38,27 @@ type Exporter struct {
 	logger     *logrus.Logger
 }
 
-func NewSwiftExporter(logger *logrus.Logger) *Exporter {
+func NewSwiftExporter(logger *logrus.Logger, filters ...string) (*Exporter, error) {
 	exporter := &Exporter{
 		logger:     logger,
 		Collectors: make(map[string]Collector),
 	}
 	exporter.logger.Debug("Creating exporter")
-	for name, factory := range factories {
-		exporter.Collectors[name] = factory(exporter.logger)
+
+	if len(filters) == 0 {
+		filters = []string{
+			"server",
+		}
+	}
+	for _, filter := range filters {
+		factory, exist := factories[filter]
+		if !exist {
+			return nil, fmt.Errorf("missing collector: %s", filter)
+		}
+		exporter.Collectors[filter] = factory(exporter.logger)
 	}
 
-	return exporter
+	return exporter, nil
 }
 
 func (exporter *Exporter) Describe(ch chan<- *prometheus.Desc) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	"os/exec"
 
@@ -44,19 +45,27 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	exporter := exporter.NewSwiftExporter(logger)
+	http.HandleFunc(*metricPath, func(w http.ResponseWriter, r *http.Request) {
+		filters := r.URL.Query()["collect"]
+		exporter, err := exporter.NewSwiftExporter(logger, filters...)
+		if err != nil {
+			logger.Warn("Couldn't create filtered metrics handler:", err)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(fmt.Sprintf("Couldn't create filtered metrics handler: %s", err)))
+			return
+		}
 
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(exporter)
-	handler := promhttp.HandlerFor(
-		prometheus.Gatherers{registry},
-		promhttp.HandlerOpts{
-			ErrorHandling:       promhttp.ContinueOnError,
-			MaxRequestsInFlight: 30,
-		},
-	)
-
-	http.Handle(*metricPath, handler)
+		registry := prometheus.NewRegistry()
+		registry.MustRegister(exporter)
+		handler := promhttp.HandlerFor(
+			prometheus.Gatherers{registry},
+			promhttp.HandlerOpts{
+				ErrorHandling:       promhttp.ContinueOnError,
+				MaxRequestsInFlight: 30,
+			},
+		)
+		handler.ServeHTTP(w, r)
+	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`
 <html>
