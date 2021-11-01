@@ -40,7 +40,7 @@ def get_hplist(builder, object=False):
     for dev in builder["devs"]:
         if not dev:
             continue
-        if object and int(dev["weight"]) == 0:
+        if int(dev["weight"]) == 0:
             continue
 
         if dev["ip"] not in tmp_dict:
