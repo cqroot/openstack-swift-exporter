@@ -1,14 +1,12 @@
 BINARY_NAME=swift_exporter
-OS=linux
-ARCH=amd64
 
 build:
-	CGO_ENABLED=0 GOOS=${OS} GOARCH=${ARCH} go build -o .build/${OS}-${ARCH}/${BINARY_NAME} main.go
+	CGO_ENABLED=0 go build -o .build/${BINARY_NAME} main.go
 
 run:
-	CGO_ENABLED=0 GOOS=${OS} GOARCH=${ARCH} go build -o .build/${OS}-${ARCH}/${BINARY_NAME} main.go
-	./.build/${OS}-${ARCH}/${BINARY_NAME} -debug
+	CGO_ENABLED=0 go build -o .build/${BINARY_NAME} main.go
+	./.build/${BINARY_NAME} -debug
 
 clean:
 	go clean
-	rm ./.build/
+	rm -r ./.build/
