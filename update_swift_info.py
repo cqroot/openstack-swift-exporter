@@ -40,11 +40,14 @@ def get_hplist(builder, object=False):
     for dev in builder["devs"]:
         if not dev:
             continue
+        if object and int(dev["weight"]) == 0:
+            continue
+
         if dev["ip"] not in tmp_dict:
             tmp_dict[dev["ip"]] = {}
         tmp_dict[dev["ip"]]["port"] = str(dev["port"])
 
-        if object and int(dev["weight"]) != 0:
+        if object:
             if "devices" not in tmp_dict[dev["ip"]]:
                 tmp_dict[dev["ip"]]["devices"] = []
             tmp_dict[dev["ip"]]["devices"].append(dev["device"])
