@@ -97,7 +97,7 @@ func (collector *diskCollector) Update(ch chan<- prometheus.Metric) error {
 				ch <- prometheus.MustNewConstMetric(collector.usedBytesDesc, prometheus.GaugeValue, disk["used"].(float64), host, disk["device"].(string))
 				ch <- prometheus.MustNewConstMetric(collector.availBytesDesc, prometheus.GaugeValue, disk["avail"].(float64), host, disk["device"].(string))
 				ch <- prometheus.MustNewConstMetric(collector.sizeBytesDesc, prometheus.GaugeValue, disk["size"].(float64), host, disk["device"].(string))
-				ch <- prometheus.MustNewConstMetric(collector.usageBytesDesc, prometheus.GaugeValue, disk["used"].(float64)/disk["avail"].(float64), host, disk["device"].(string))
+				ch <- prometheus.MustNewConstMetric(collector.usageBytesDesc, prometheus.GaugeValue, disk["used"].(float64)/disk["size"].(float64), host, disk["device"].(string))
 
 				chUsed <- disk["used"].(float64)
 				chAvail <- disk["avail"].(float64)
