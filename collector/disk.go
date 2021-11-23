@@ -59,7 +59,7 @@ func NewDiskCollector(logger *logrus.Logger) Collector {
 	}
 }
 
-func (collector *diskCollector) Update(ch chan<- prometheus.Metric) error {
+func (c *diskCollector) Update(ch chan<- prometheus.Metric) error {
 	wg := sync.WaitGroup{}
 	wg.Add(len(swiftInfo.Object))
 
@@ -94,10 +94,10 @@ func (collector *diskCollector) Update(ch chan<- prometheus.Metric) error {
 					continue
 				}
 
-				ch <- prometheus.MustNewConstMetric(collector.usedBytesDesc, prometheus.GaugeValue, disk["used"].(float64), host, disk["device"].(string))
-				ch <- prometheus.MustNewConstMetric(collector.availBytesDesc, prometheus.GaugeValue, disk["avail"].(float64), host, disk["device"].(string))
-				ch <- prometheus.MustNewConstMetric(collector.sizeBytesDesc, prometheus.GaugeValue, disk["size"].(float64), host, disk["device"].(string))
-				ch <- prometheus.MustNewConstMetric(collector.usageBytesDesc, prometheus.GaugeValue, disk["used"].(float64)/disk["size"].(float64), host, disk["device"].(string))
+				ch <- prometheus.MustNewConstMetric(c.usedBytesDesc, prometheus.GaugeValue, disk["used"].(float64), host, disk["device"].(string))
+				ch <- prometheus.MustNewConstMetric(c.availBytesDesc, prometheus.GaugeValue, disk["avail"].(float64), host, disk["device"].(string))
+				ch <- prometheus.MustNewConstMetric(c.sizeBytesDesc, prometheus.GaugeValue, disk["size"].(float64), host, disk["device"].(string))
+				ch <- prometheus.MustNewConstMetric(c.usageBytesDesc, prometheus.GaugeValue, disk["used"].(float64)/disk["size"].(float64), host, disk["device"].(string))
 
 				chUsed <- disk["used"].(float64)
 				chAvail <- disk["avail"].(float64)
@@ -114,7 +114,7 @@ func (collector *diskCollector) Update(ch chan<- prometheus.Metric) error {
 		for used := range chUsed {
 			totalUsed += used
 		}
-		ch <- prometheus.MustNewConstMetric(collector.totalUsedBytesDesc, prometheus.GaugeValue, totalUsed)
+		ch <- prometheus.MustNewConstMetric(c.totalUsedBytesDesc, prometheus.GaugeValue, totalUsed)
 	}(&wgTotal, ch, chUsed)
 
 	go func(wg *sync.WaitGroup, ch chan<- prometheus.Metric, chAvail <-chan float64) {
@@ -125,7 +125,7 @@ func (collector *diskCollector) Update(ch chan<- prometheus.Metric) error {
 		for avail := range chAvail {
 			totalAvail += avail
 		}
-		ch <- prometheus.MustNewConstMetric(collector.totalAvailBytesDesc, prometheus.GaugeValue, totalAvail)
+		ch <- prometheus.MustNewConstMetric(c.totalAvailBytesDesc, prometheus.GaugeValue, totalAvail)
 	}(&wgTotal, ch, chAvail)
 
 	go func(wg *sync.WaitGroup, ch chan<- prometheus.Metric, chSize <-chan float64) {
@@ -136,7 +136,7 @@ func (collector *diskCollector) Update(ch chan<- prometheus.Metric) error {
 		for size := range chSize {
 			totalSize += size
 		}
-		ch <- prometheus.MustNewConstMetric(collector.totalSizeBytesDesc, prometheus.GaugeValue, totalSize)
+		ch <- prometheus.MustNewConstMetric(c.totalSizeBytesDesc, prometheus.GaugeValue, totalSize)
 	}(&wgTotal, ch, chSize)
 
 	wg.Wait()

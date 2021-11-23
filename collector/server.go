@@ -39,7 +39,7 @@ func NewServerCollector(logger *logrus.Logger) Collector {
 	}
 }
 
-func (collector *serverCollector) Update(ch chan<- prometheus.Metric) error {
+func (c *serverCollector) Update(ch chan<- prometheus.Metric) error {
 	wg := sync.WaitGroup{}
 	wg.Add(len(swiftInfo.Account) + len(swiftInfo.Container) + len(swiftInfo.Object))
 
@@ -47,7 +47,7 @@ func (collector *serverCollector) Update(ch chan<- prometheus.Metric) error {
 		go func(wg *sync.WaitGroup, ch chan<- prometheus.Metric, host string, port string) {
 			defer wg.Done()
 
-			ch <- prometheus.MustNewConstMetric(collector.accountServerStatusDesc, prometheus.GaugeValue, checkPort(host, port), host)
+			ch <- prometheus.MustNewConstMetric(c.accountServerStatusDesc, prometheus.GaugeValue, checkPort(host, port), host)
 		}(&wg, ch, accountInfo.Host, accountInfo.Port)
 	}
 
@@ -55,7 +55,7 @@ func (collector *serverCollector) Update(ch chan<- prometheus.Metric) error {
 		go func(wg *sync.WaitGroup, ch chan<- prometheus.Metric, host string, port string) {
 			defer wg.Done()
 
-			ch <- prometheus.MustNewConstMetric(collector.containerServerStatusDesc, prometheus.GaugeValue, checkPort(host, port), host)
+			ch <- prometheus.MustNewConstMetric(c.containerServerStatusDesc, prometheus.GaugeValue, checkPort(host, port), host)
 		}(&wg, ch, containerInfo.Host, containerInfo.Port)
 	}
 
@@ -63,7 +63,7 @@ func (collector *serverCollector) Update(ch chan<- prometheus.Metric) error {
 		go func(wg *sync.WaitGroup, ch chan<- prometheus.Metric, host string, port string) {
 			defer wg.Done()
 
-			ch <- prometheus.MustNewConstMetric(collector.objectServerStatusDesc, prometheus.GaugeValue, checkPort(host, port), host)
+			ch <- prometheus.MustNewConstMetric(c.objectServerStatusDesc, prometheus.GaugeValue, checkPort(host, port), host)
 		}(&wg, ch, objectInfo.Host, objectInfo.Port)
 	}
 

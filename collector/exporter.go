@@ -33,17 +33,17 @@ func registerCollector(collector string, factory func(*logrus.Logger) Collector)
 	factories[collector] = factory
 }
 
-type Exporter struct {
+type SwiftCollector struct {
 	Collectors map[string]Collector
 	logger     *logrus.Logger
 }
 
-func NewSwiftExporter(logger *logrus.Logger, filters ...string) (*Exporter, error) {
-	exporter := &Exporter{
+func NewSwiftCollector(logger *logrus.Logger, filters ...string) (*SwiftCollector, error) {
+	collector := &SwiftCollector{
 		logger:     logger,
 		Collectors: make(map[string]Collector),
 	}
-	exporter.logger.Debug("Creating exporter")
+	collector.logger.Debug("Creating swift collector")
 
 	if len(filters) == 0 {
 		filters = []string{
@@ -55,25 +55,25 @@ func NewSwiftExporter(logger *logrus.Logger, filters ...string) (*Exporter, erro
 		if !exist {
 			return nil, fmt.Errorf("missing collector: %s", filter)
 		}
-		exporter.Collectors[filter] = factory(exporter.logger)
+		collector.Collectors[filter] = factory(collector.logger)
 	}
 
-	return exporter, nil
+	return collector, nil
 }
 
-func (exporter *Exporter) Describe(ch chan<- *prometheus.Desc) {
+func (c *SwiftCollector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- scrapeDurationDesc
 }
 
 // Collect implements the prometheus.Collector interface.
-func (exporter *Exporter) Collect(ch chan<- prometheus.Metric) {
-	swiftInfo = *GetSwiftInfo(exporter.logger)
+func (c *SwiftCollector) Collect(ch chan<- prometheus.Metric) {
+	swiftInfo = *GetSwiftInfo(c.logger)
 
 	wg := sync.WaitGroup{}
-	wg.Add(len(exporter.Collectors))
-	for name, collector := range exporter.Collectors {
+	wg.Add(len(c.Collectors))
+	for name, collector := range c.Collectors {
 		go func(name string, collector Collector) {
-			execute(name, collector, ch, exporter.logger)
+			execute(name, collector, ch, c.logger)
 			wg.Done()
 		}(name, collector)
 	}

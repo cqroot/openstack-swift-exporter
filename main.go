@@ -10,7 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 
-	exporter "openstack_swift_exporter/internal"
+	exporter "openstack_swift_exporter/collector"
 )
 
 var (
@@ -47,7 +47,7 @@ func main() {
 
 	http.HandleFunc(*metricPath, func(w http.ResponseWriter, r *http.Request) {
 		filters := r.URL.Query()["collect"]
-		exporter, err := exporter.NewSwiftExporter(logger, filters...)
+		collector, err := exporter.NewSwiftCollector(logger, filters...)
 		if err != nil {
 			logger.Warn("Couldn't create filtered metrics handler:", err)
 			w.WriteHeader(http.StatusBadRequest)
@@ -56,7 +56,7 @@ func main() {
 		}
 
 		registry := prometheus.NewRegistry()
-		registry.MustRegister(exporter)
+		registry.MustRegister(collector)
 		handler := promhttp.HandlerFor(
 			prometheus.Gatherers{registry},
 			promhttp.HandlerOpts{
