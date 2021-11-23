@@ -73,7 +73,7 @@ func (collector *serverCollector) Update(ch chan<- prometheus.Metric) error {
 
 // Check port connectivity. If connected, return 1, otherwise return 0.
 func checkPort(host string, port string) float64 {
-	timeout := 10 * time.Second
+	timeout := 3 * time.Second
 	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), timeout)
 	if err != nil {
 		return 0
