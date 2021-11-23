@@ -10,7 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 
-	exporter "openstack_swift_exporter/collector"
+	exporter "github.com/cqroot/openstack_swift_exporter/collector"
 )
 
 var (

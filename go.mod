@@ -1,4 +1,4 @@
-module openstack_swift_exporter
+module github.com/cqroot/openstack_swift_exporter
 
 go 1.16
 
