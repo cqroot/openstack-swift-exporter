@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"os/exec"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -38,11 +37,6 @@ func main() {
 	if *verbose {
 		logger.SetReportCaller(true)
 		logger.Debug("Enabling verbose output")
-	}
-
-	cmd := exec.Command("python", "/bin/update_swift_info.py")
-	if err := cmd.Run(); err != nil {
-		logger.Fatal(err)
 	}
 
 	http.HandleFunc(*metricPath, func(w http.ResponseWriter, r *http.Request) {

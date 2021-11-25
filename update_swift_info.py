@@ -79,5 +79,5 @@ builder_info["object"] = get_hplist(
     get_builder(os.path.join(swift_path, "object.builder")), object=True
 )
 
-with open("/etc/swift_exporter.json", "w") as fw:
+with open("/etc/swift_exporter/cluster.json", "w") as fw:
     fw.write(json.dumps(builder_info))
