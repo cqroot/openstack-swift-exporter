@@ -13,8 +13,9 @@ http://127.0.0.1:9150/metrics?collect=disk&collect=server
 Available collectors:
 
 | collector | scrape speed |
-| --------- | ------------ |
+|-----------|--------------|
 | server    | fast         |
+| proxy     | fast         |
 | disk      | slow         |
 
 Default is ["server"].
@@ -28,6 +29,13 @@ Default is ["server"].
 | swift_account_server_status   | Swift account-server reachability.   |
 | swift_container_server_status | Swift container-server reachability. |
 | swift_object_server_status    | Swift object-server reachability.    |
+
+### Proxy
+
+| Name                | Description                                    |
+|:--------------------|:-----------------------------------------------|
+| swift_put_status    | Swift proxy-server put request test status.    |
+| swift_delete_status | Swift proxy-server delete request test status. |
 
 ### Disk
 
