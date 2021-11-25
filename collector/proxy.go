@@ -10,11 +10,9 @@ import (
 
 	swift "github.com/ncw/swift/v2"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 )
 
 type proxyCollector struct {
-	logger           *logrus.Logger
 	putStatusDesc    *prometheus.Desc
 	deleteStatusDesc *prometheus.Desc
 }
@@ -23,9 +21,8 @@ func init() {
 	registerCollector("proxy", NewProxyCollector)
 }
 
-func NewProxyCollector(logger *logrus.Logger) Collector {
+func NewProxyCollector() Collector {
 	return &proxyCollector{
-		logger: logger,
 		putStatusDesc: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "put_status"),
 			"Swift proxy-server put request test status.", []string{"proxy", "filename"}, nil,

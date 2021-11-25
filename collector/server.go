@@ -6,11 +6,9 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 )
 
 type serverCollector struct {
-	logger                    *logrus.Logger
 	accountServerStatusDesc   *prometheus.Desc
 	containerServerStatusDesc *prometheus.Desc
 	objectServerStatusDesc    *prometheus.Desc
@@ -21,9 +19,8 @@ func init() {
 }
 
 // NewServerCollector returns a new Collector exposing server stats.
-func NewServerCollector(logger *logrus.Logger) Collector {
+func NewServerCollector() Collector {
 	return &serverCollector{
-		logger: logger,
 		accountServerStatusDesc: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "", "account_server_status"),
 			"Swift account-server reachability.", []string{"host"}, nil,

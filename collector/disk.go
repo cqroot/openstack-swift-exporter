@@ -6,11 +6,9 @@ import (
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 )
 
 type diskCollector struct {
-	logger              *logrus.Logger
 	usedBytesDesc       *prometheus.Desc
 	availBytesDesc      *prometheus.Desc
 	sizeBytesDesc       *prometheus.Desc
@@ -25,9 +23,8 @@ func init() {
 }
 
 // NewDiskCollector returns a new Collector exposing disk usage.
-func NewDiskCollector(logger *logrus.Logger) Collector {
+func NewDiskCollector() Collector {
 	return &diskCollector{
-		logger: logger,
 		usedBytesDesc: prometheus.NewDesc(
 			prometheus.BuildFQName(namespace, "disk", "used_bytes"),
 			"Swift disk used.", []string{"host", "device"}, nil,

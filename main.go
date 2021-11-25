@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"path"
+	"runtime"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -22,28 +24,33 @@ var (
 func main() {
 	flag.Parse()
 
-	logger := logrus.New()
-	logger.SetFormatter(&logrus.TextFormatter{
+	logrus.SetFormatter(&logrus.TextFormatter{
+		ForceQuote:      true,
 		FullTimestamp:   true,
 		TimestampFormat: "2006-01-02 15:04:05",
+		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			filename := path.Base(f.File)
+			return "", fmt.Sprintf(" - %s:%d -", filename, f.Line)
+		},
 	})
+	logrus.SetReportCaller(true)
 
 	if *debug {
-		logger.SetLevel(logrus.DebugLevel)
-		logger.Debug("Enabling debug output")
+		logrus.SetLevel(logrus.DebugLevel)
+		logrus.Debug("Enabling debug output")
 	} else {
-		logger.SetLevel(logrus.InfoLevel)
+		logrus.SetLevel(logrus.InfoLevel)
 	}
 	if *verbose {
-		logger.SetReportCaller(true)
-		logger.Debug("Enabling verbose output")
+		logrus.SetReportCaller(true)
+		logrus.Debug("Enabling verbose output")
 	}
 
 	http.HandleFunc(*metricPath, func(w http.ResponseWriter, r *http.Request) {
 		filters := r.URL.Query()["collect"]
-		collector, err := exporter.NewSwiftCollector(logger, filters...)
+		collector, err := exporter.NewSwiftCollector(filters...)
 		if err != nil {
-			logger.Warn("Couldn't create filtered metrics handler:", err)
+			logrus.Warn("Couldn't create filtered metrics handler:", err)
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(fmt.Sprintf("Couldn't create filtered metrics handler: %s", err)))
 			return
@@ -72,6 +79,6 @@ func main() {
         `))
 	})
 
-	logger.Info("Providing metrics at ", *listenAddress, *metricPath)
-	logger.Fatal(http.ListenAndServe(*listenAddress, nil))
+	logrus.Info("Providing metrics at ", *listenAddress, *metricPath)
+	logrus.Fatal(http.ListenAndServe(*listenAddress, nil))
 }

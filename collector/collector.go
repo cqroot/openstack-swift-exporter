@@ -13,7 +13,7 @@ import (
 const namespace = "swift"
 
 var (
-	factories          = make(map[string]func(*logrus.Logger) Collector)
+	factories          = make(map[string]func() Collector)
 	scrapeDurationDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "scrape", "collector_duration_seconds"),
 		"swift_exporter: Duration of a collector scrape.",
@@ -35,21 +35,19 @@ type Collector interface {
 	Update(ch chan<- prometheus.Metric) error
 }
 
-func registerCollector(collector string, factory func(*logrus.Logger) Collector) {
+func registerCollector(collector string, factory func() Collector) {
 	factories[collector] = factory
 }
 
 type SwiftCollector struct {
 	Collectors map[string]Collector
-	logger     *logrus.Logger
 }
 
-func NewSwiftCollector(logger *logrus.Logger, filters ...string) (*SwiftCollector, error) {
+func NewSwiftCollector(filters ...string) (*SwiftCollector, error) {
 	collector := &SwiftCollector{
-		logger:     logger,
 		Collectors: make(map[string]Collector),
 	}
-	collector.logger.Debug("Creating swift collector")
+	logrus.Debug("Creating swift collector")
 
 	if len(filters) == 0 {
 		filters = []string{
@@ -61,7 +59,7 @@ func NewSwiftCollector(logger *logrus.Logger, filters ...string) (*SwiftCollecto
 		if !exist {
 			return nil, fmt.Errorf("missing collector: %s", filter)
 		}
-		collector.Collectors[filter] = factory(collector.logger)
+		collector.Collectors[filter] = factory()
 	}
 
 	return collector, nil
@@ -74,26 +72,26 @@ func (c *SwiftCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (c *SwiftCollector) Collect(ch chan<- prometheus.Metric) {
-	swiftInfo = *GetSwiftInfo(c.logger)
+	swiftInfo = *GetSwiftInfo()
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(c.Collectors))
 	for name, collector := range c.Collectors {
 		go func(name string, collector Collector) {
-			execute(name, collector, ch, c.logger)
+			execute(name, collector, ch)
 			wg.Done()
 		}(name, collector)
 	}
 	wg.Wait()
 }
 
-func execute(name string, collector Collector, ch chan<- prometheus.Metric, logger *logrus.Logger) {
+func execute(name string, collector Collector, ch chan<- prometheus.Metric) {
 	begin := time.Now()
 	err := collector.Update(ch)
 	duration := time.Since(begin)
 
 	if err != nil {
-		logger.Error("Update ", name, " error: ", err)
+		logrus.Error("Update ", name, " error: ", err)
 		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, 0, name)
 	} else {
 		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, 1, name)

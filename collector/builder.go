@@ -23,25 +23,25 @@ type SwiftInfo struct {
 	}
 }
 
-func GetSwiftInfo(logger *logrus.Logger) *SwiftInfo {
+func GetSwiftInfo() *SwiftInfo {
 	configPath := "/etc/swift_exporter/cluster.json"
-	logger.Debug("Read SwiftInfo from " + configPath)
+	logrus.Debug("Read SwiftInfo from " + configPath)
 
 	file, err := os.Open(configPath)
 	if err != nil {
-		logger.Fatal(err)
+		logrus.Fatal(err)
 	}
 	defer file.Close()
 
 	content, err := ioutil.ReadAll(file)
 	if err != nil {
-		logger.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	var si SwiftInfo
 	err = json.Unmarshal([]byte(content), &si)
 	if err != nil {
-		logger.Fatal(err)
+		logrus.Fatal(err)
 	}
 	return &si
 }
