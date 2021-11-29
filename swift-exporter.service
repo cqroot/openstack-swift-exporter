@@ -1,0 +1,10 @@
+[Unit]
+Description=OpenStack Swift Exporter for Prometheus.
+After=syslog.target network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/swift_exporter -debug
+
+[Install]
+WantedBy=multi-user.target
