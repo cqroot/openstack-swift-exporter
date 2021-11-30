@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"net/http"
 	"path"
@@ -10,6 +9,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
+	flag "github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
 	exporter "github.com/cqroot/openstack_swift_exporter/collector"
 )
@@ -17,13 +18,12 @@ import (
 var (
 	listenAddress = flag.String("web.listen-address", ":9150", "Address on which to expose metrics and web interface.")
 	metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
-	debug         = flag.Bool("debug", false, "Output debug information.")
-	verbose       = flag.Bool("verbose", false, "Output file name and line number.")
+	debug         = flag.Bool("log.debug", false, "Output debug information.")
+	verbose       = flag.Bool("log.verbose", false, "Output file name and line number.")
 )
 
-func main() {
-	flag.Parse()
-
+func init() {
+	// Logrus init
 	logrus.SetFormatter(&logrus.TextFormatter{
 		ForceQuote:      true,
 		FullTimestamp:   true,
@@ -35,18 +35,41 @@ func main() {
 	})
 	logrus.SetReportCaller(true)
 
-	if *debug {
+	// Viper set default
+	viper.SetDefault("web.listen-address", ":9150")
+	viper.SetDefault("web.telemetry-path", "/metrics")
+	viper.SetDefault("log.debug", false)
+	viper.SetDefault("log.verbose", false)
+
+	// Pflag parse
+	flag.Parse()
+	viper.BindPFlags(flag.CommandLine)
+
+	// Viper read config
+	viper.SetConfigName("swift_exporter")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("/etc/swift_exporter/")
+	viper.AddConfigPath(".")
+	err := viper.ReadInConfig()
+	if err != nil {
+		logrus.Info(err)
+	}
+
+	// Debug and Verbose
+	if viper.Get("log.debug").(bool) {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debug("Enabling debug output")
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
-	if *verbose {
+	if viper.Get("log.verbose").(bool) {
 		logrus.SetReportCaller(true)
-		logrus.Debug("Enabling verbose output")
+		logrus.Info("Enabling verbose output")
 	}
+}
 
-	http.HandleFunc(*metricPath, func(w http.ResponseWriter, r *http.Request) {
+func main() {
+	http.HandleFunc(viper.Get("web.telemetry-path").(string), func(w http.ResponseWriter, r *http.Request) {
 		filters := r.URL.Query()["collect"]
 		collector, err := exporter.NewSwiftCollector(filters...)
 		if err != nil {
@@ -73,12 +96,12 @@ func main() {
 <head><title>Swift Exporter v` + "0.0.1" + `</title></head>
 <body>
 <h1>Swift Exporter ` + "0.0.1" + `</h1>
-<p><a href='` + *metricPath + `'>Metrics</a></p>
+<p><a href='` + viper.Get("web.telemetry-path").(string) + `'>Metrics</a></p>
 </body>
 </html>
         `))
 	})
 
-	logrus.Info("Providing metrics at ", *listenAddress, *metricPath)
-	logrus.Fatal(http.ListenAndServe(*listenAddress, nil))
+	logrus.Info("Providing metrics at ", viper.Get("web.listen-address").(string), viper.Get("web.telemetry-path").(string))
+	logrus.Fatal(http.ListenAndServe(viper.Get("web.listen-address").(string), nil))
 }
