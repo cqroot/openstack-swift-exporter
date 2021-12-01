@@ -1,21 +1,21 @@
 .PHONY: build run clean pack dbuild drun dexec dclean
 
 build:
-	CGO_ENABLED=0 go build -o .build/swift_exporter main.go
+	CGO_ENABLED=0 go build -o bin/swift_exporter main.go
 
 run:
-	CGO_ENABLED=0 go build -o .build/swift_exporter main.go
-	./.build/swift_exporter -debug
+	CGO_ENABLED=0 go build -o bin/swift_exporter main.go
+	bin/swift_exporter --log.debug
 
 clean:
 	go clean
-	rm -r ./.build/
+	rm -rf ./bin/swift_exporter ./swift_exporter
 
 pack: build
 	mkdir -p swift_exporter
 	mkdir -p swift_exporter/bin
 	mkdir -p swift_exporter/conf
-	cp .build/swift_exporter swift_exporter/bin/
+	cp bin swift_exporter/
 	cp bin/update_swift_info.py swift_exporter/bin/
 	cp -r conf/ swift_exporter/
 

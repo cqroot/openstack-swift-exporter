@@ -81,3 +81,4 @@ builder_info["object"] = get_hplist(
 
 with open("/etc/swift_exporter/cluster.json", "w") as fw:
     fw.write(json.dumps(builder_info))
+    print("Collection complete.")

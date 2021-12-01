@@ -3,9 +3,13 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"os/exec"
 	"path"
 	"runtime"
+	"time"
 
+	"github.com/go-co-op/gocron"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -73,7 +77,30 @@ func init() {
 	}
 }
 
+func initCollector() {
+	executable, err := os.Executable()
+	if err != nil {
+		logrus.Fatal(err)
+	}
+	executionPath := path.Dir(executable)
+	collectorPath := path.Join(executionPath, "update_swift_info.py")
+	logrus.Info(collectorPath)
+
+	scheduler := gocron.NewScheduler(time.UTC)
+	scheduler.Every("30m").Do(func() {
+		cmd := exec.Command("python", collectorPath)
+		stdout, err := cmd.Output()
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		logrus.Debug("Collector: ", string(stdout))
+	})
+	scheduler.StartAsync()
+}
+
 func main() {
+	initCollector()
+
 	http.HandleFunc(viper.GetString("web.telemetry-path"), func(w http.ResponseWriter, r *http.Request) {
 		filters := r.URL.Query()["collect"]
 		collector, err := exporter.NewSwiftCollector(filters...)
