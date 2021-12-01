@@ -16,6 +16,7 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
+	"github.com/cqroot/openstack_swift_exporter/collector"
 	exporter "github.com/cqroot/openstack_swift_exporter/collector"
 )
 
@@ -84,17 +85,18 @@ func initCollector() {
 	}
 	executionPath := path.Dir(executable)
 	collectorPath := path.Join(executionPath, "update_swift_info.py")
-	logrus.Info(collectorPath)
 
-	scheduler := gocron.NewScheduler(time.UTC)
-	scheduler.Every("30m").Do(func() {
+	collectTask := func() {
 		cmd := exec.Command("python", collectorPath)
 		stdout, err := cmd.Output()
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		logrus.Debug("Collector: ", string(stdout))
-	})
+		collector.UpdateSwiftInfo(stdout)
+	}
+
+	scheduler := gocron.NewScheduler(time.UTC)
+	scheduler.Every("30m").Do(collectTask)
 	scheduler.StartAsync()
 }
 

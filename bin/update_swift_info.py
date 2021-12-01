@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding=utf-8 -*-
 
+from __future__ import print_function
 import os
 import json
 import pickle
@@ -66,19 +67,22 @@ def get_hplist(builder, object=False):
     return result
 
 
-builder_info = {}
-swift_path = "/etc/swift/"
+def main():
+    builder_info = {}
+    swift_path = "/etc/swift/"
 
-builder_info["account"] = get_hplist(
-    get_builder(os.path.join(swift_path, "account.builder"))
-)
-builder_info["container"] = get_hplist(
-    get_builder(os.path.join(swift_path, "container.builder"))
-)
-builder_info["object"] = get_hplist(
-    get_builder(os.path.join(swift_path, "object.builder")), object=True
-)
+    builder_info["account"] = get_hplist(
+        get_builder(os.path.join(swift_path, "account.builder"))
+    )
+    builder_info["container"] = get_hplist(
+        get_builder(os.path.join(swift_path, "container.builder"))
+    )
+    builder_info["object"] = get_hplist(
+        get_builder(os.path.join(swift_path, "object.builder")), object=True
+    )
 
-with open("/etc/swift_exporter/cluster.json", "w") as fw:
-    fw.write(json.dumps(builder_info))
-    print("Collection complete.")
+    print(json.dumps(builder_info))
+
+
+if __name__ == "__main__":
+    main()

@@ -4,7 +4,7 @@ After=syslog.target network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/swift_exporter -debug
+ExecStart=/opt/swift_exporter/bin/swift_exporter --log.debug --config /opt/swift_exporter/conf/swift_exporter.yml
 
 [Install]
 WantedBy=multi-user.target

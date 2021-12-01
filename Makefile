@@ -3,7 +3,7 @@
 build:
 	CGO_ENABLED=0 go build -o bin/swift_exporter main.go
 
-run:
+run: pack
 	CGO_ENABLED=0 go build -o bin/swift_exporter main.go
 	bin/swift_exporter --log.debug
 
@@ -15,12 +15,12 @@ pack: build
 	mkdir -p swift_exporter
 	mkdir -p swift_exporter/bin
 	mkdir -p swift_exporter/conf
-	cp bin swift_exporter/
+	cp -r bin swift_exporter/
 	cp bin/update_swift_info.py swift_exporter/bin/
 	cp -r conf/ swift_exporter/
 
 # docker
-dbuild: build
+dbuild: pack
 	docker build --force-rm -t swift_exporter .
 
 drun:
@@ -29,10 +29,10 @@ drun:
 		-v /etc/swift:/etc/swift \
 		--hostname swift_exporter \
 		--name swift_exporter \
-		swift_exporter -debug
+		swift_exporter --log.debug
 
 dexec:
 	docker exec -it swift_exporter /bin/sh
 
-dclean:
+dclean: clean
 	docker rm -f swift_exporter; docker rmi swift_exporter

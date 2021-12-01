@@ -26,7 +26,6 @@ var (
 		[]string{"collector"},
 		nil,
 	)
-	swiftInfo = SwiftInfo{}
 )
 
 // Collector is the interface a collector has to implement.
@@ -72,8 +71,6 @@ func (c *SwiftCollector) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements the prometheus.Collector interface.
 func (c *SwiftCollector) Collect(ch chan<- prometheus.Metric) {
-	swiftInfo = *GetSwiftInfo()
-
 	wg := sync.WaitGroup{}
 	wg.Add(len(c.Collectors))
 	for name, collector := range c.Collectors {
