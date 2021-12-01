@@ -3,13 +3,12 @@ package collector
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
 	"sync"
 	"time"
 
 	swift "github.com/ncw/swift/v2"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/viper"
 )
 
 type proxyCollector struct {
@@ -35,17 +34,8 @@ func NewProxyCollector() Collector {
 }
 
 func (c *proxyCollector) Update(ch chan<- prometheus.Metric) error {
-	container := os.Getenv("SWIFTPROXY_Container")
-	if container == "" {
-		return fmt.Errorf("no container provided")
-	}
-
-	proxysEnv := os.Getenv("SE_PROXY_Proxys")
-	if proxysEnv == "" {
-		return fmt.Errorf("no proxys provided")
-	}
-
-	proxys := strings.Split(proxysEnv, ",")
+	container := viper.GetString("collect.proxy.container")
+	proxys := viper.GetStringSlice("collect.proxy.proxys")
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(proxys))
@@ -56,11 +46,11 @@ func (c *proxyCollector) Update(ch chan<- prometheus.Metric) error {
 
 			ctx := context.Background()
 			conn := swift.Connection{
-				UserName: os.Getenv("SE_PROXY_UserName"),
-				ApiKey:   os.Getenv("SE_PROXY_ApiKey"),
-				AuthUrl:  os.Getenv("SE_PROXY_AuthUrl"),
-				Domain:   os.Getenv("SE_PROXY_Domain"), // Name of the domain (v3 auth only)
-				Tenant:   os.Getenv("SE_PROXY_Tenant"), // Name of the tenant (v2 auth only)
+				UserName: viper.GetString("collect.proxy.username"),
+				ApiKey:   viper.GetString("collect.proxy.api_key"),
+				AuthUrl:  viper.GetString("collect.proxy.auth_url"),
+				Domain:   viper.GetString("collect.proxy.domain"), // Name of the domain (v3 auth only)
+				Tenant:   viper.GetString("collect.proxy.tenant"), // Name of the tenant (v2 auth only)
 			}
 			err := conn.Authenticate(ctx)
 			if err != nil {
@@ -69,7 +59,7 @@ func (c *proxyCollector) Update(ch chan<- prometheus.Metric) error {
 				return
 			}
 
-			conn.StorageUrl = "http://" + proxy + "/v1/" + os.Getenv("SWIFTPROXY_Tenant")
+			conn.StorageUrl = "http://" + proxy + "/v1/" + viper.GetString("collect.proxy.tenant")
 			filename := fmt.Sprintf("%d_%s", time.Now().Unix(), proxy)
 
 			ch <- prometheus.MustNewConstMetric(

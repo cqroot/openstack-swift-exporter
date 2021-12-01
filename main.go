@@ -56,20 +56,20 @@ func init() {
 	}
 
 	// Debug and Verbose
-	if viper.Get("log.debug").(bool) {
+	if viper.GetBool("log.debug") {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debug("Enabling debug output")
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
-	if viper.Get("log.verbose").(bool) {
+	if viper.GetBool("log.verbose") {
 		logrus.SetReportCaller(true)
 		logrus.Info("Enabling verbose output")
 	}
 }
 
 func main() {
-	http.HandleFunc(viper.Get("web.telemetry-path").(string), func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(viper.GetString("web.telemetry-path"), func(w http.ResponseWriter, r *http.Request) {
 		filters := r.URL.Query()["collect"]
 		collector, err := exporter.NewSwiftCollector(filters...)
 		if err != nil {
@@ -96,12 +96,12 @@ func main() {
 <head><title>Swift Exporter v` + "0.0.1" + `</title></head>
 <body>
 <h1>Swift Exporter ` + "0.0.1" + `</h1>
-<p><a href='` + viper.Get("web.telemetry-path").(string) + `'>Metrics</a></p>
+<p><a href='` + viper.GetString("web.telemetry-path") + `'>Metrics</a></p>
 </body>
 </html>
         `))
 	})
 
-	logrus.Info("Providing metrics at ", viper.Get("web.listen-address").(string), viper.Get("web.telemetry-path").(string))
-	logrus.Fatal(http.ListenAndServe(viper.Get("web.listen-address").(string), nil))
+	logrus.Info("Providing metrics at ", viper.GetString("web.listen-address"), viper.GetString("web.telemetry-path"))
+	logrus.Fatal(http.ListenAndServe(viper.GetString("web.listen-address"), nil))
 }
