@@ -1,0 +1,15 @@
+web:
+  listen-address: :9150
+  telemetry-path: /metrics
+log:
+  debug: true
+  verbose: false
+# collect:
+#   proxy:
+#     username: username
+#     api_key: PASSWORD
+#     auth_url: http://127.0.0.1:5000/v2.0
+#     tenant: tenant
+#     container: container
+#     proxys:
+#       - 127.0.0.1:8080

@@ -20,6 +20,7 @@ var (
 	metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 	debug         = flag.Bool("log.debug", false, "Output debug information.")
 	verbose       = flag.Bool("log.verbose", false, "Output file name and line number.")
+	config        = flag.StringP("config", "c", ".", "Specify the configuration file.")
 )
 
 func init() {
@@ -46,10 +47,14 @@ func init() {
 	viper.BindPFlags(flag.CommandLine)
 
 	// Viper read config
-	viper.SetConfigName("swift_exporter")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("/etc/swift_exporter/")
-	viper.AddConfigPath(".")
+	if *config != "." {
+		viper.SetConfigFile(*config)
+	} else {
+		viper.SetConfigName("swift_exporter")
+		viper.SetConfigType("yaml")
+		viper.AddConfigPath(".")
+		viper.AddConfigPath("/etc/swift_exporter/")
+	}
 	err := viper.ReadInConfig()
 	if err != nil {
 		logrus.Info(err)
