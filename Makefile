@@ -15,9 +15,10 @@ pack: build
 	mkdir -p swift_exporter
 	mkdir -p swift_exporter/bin
 	mkdir -p swift_exporter/conf
-	cp -r bin swift_exporter/
+	cp -r bin systemd swift_exporter/
 	cp bin/update_swift_info.py swift_exporter/bin/
 	cp -r conf/ swift_exporter/
+	tar cvf swift_exporter.tar swift_exporter
 
 # docker
 dbuild: pack
