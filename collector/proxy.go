@@ -23,11 +23,11 @@ func init() {
 func NewProxyCollector() Collector {
 	return &proxyCollector{
 		putStatusDesc: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "put_status"),
+			prometheus.BuildFQName(namespace, "proxy", "put_status"),
 			"Swift proxy-server put request test status.", []string{"proxy", "filename"}, nil,
 		),
 		deleteStatusDesc: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "delete_status"),
+			prometheus.BuildFQName(namespace, "proxy", "delete_status"),
 			"Swift proxy-server delete request test status.", []string{"proxy", "filename"}, nil,
 		),
 	}

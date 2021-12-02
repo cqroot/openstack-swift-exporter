@@ -22,15 +22,15 @@ func init() {
 func NewServerCollector() Collector {
 	return &serverCollector{
 		accountServerStatusDesc: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "account_server_status"),
+			prometheus.BuildFQName(namespace, "server", "account_status"),
 			"Swift account-server reachability.", []string{"host"}, nil,
 		),
 		containerServerStatusDesc: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "container_server_status"),
+			prometheus.BuildFQName(namespace, "server", "container_status"),
 			"Swift container-server reachability.", []string{"host"}, nil,
 		),
 		objectServerStatusDesc: prometheus.NewDesc(
-			prometheus.BuildFQName(namespace, "", "object_server_status"),
+			prometheus.BuildFQName(namespace, "server", "object_status"),
 			"Swift object-server reachability.", []string{"host"}, nil,
 		),
 	}

@@ -26,16 +26,16 @@ Default is ["server"].
 
 | Name                          | Description                          |
 | :---------------------------- | :----------------------------------- |
-| swift_account_server_status   | Swift account-server reachability.   |
-| swift_container_server_status | Swift container-server reachability. |
-| swift_object_server_status    | Swift object-server reachability.    |
+| swift_server_account_status   | Swift account-server reachability.   |
+| swift_server_container_status | Swift container-server reachability. |
+| swift_server_object_status    | Swift object-server reachability.    |
 
 ### Proxy
 
-| Name                | Description                                    |
-|:--------------------|:-----------------------------------------------|
-| swift_put_status    | Swift proxy-server put request test status.    |
-| swift_delete_status | Swift proxy-server delete request test status. |
+| Name                      | Description                                    |
+|:--------------------------|:-----------------------------------------------|
+| swift_proxy_put_status    | Swift proxy-server put request test status.    |
+| swift_proxy_delete_status | Swift proxy-server delete request test status. |
 
 ### Disk
 
