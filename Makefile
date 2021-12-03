@@ -1,16 +1,18 @@
-.PHONY: build run clean pack dbuild drun dexec dclean
-
+.PHONY: build
 build:
 	CGO_ENABLED=0 go build -o bin/swift_exporter main.go
 
+.PHONY: run
 run: pack
 	CGO_ENABLED=0 go build -o bin/swift_exporter main.go
 	bin/swift_exporter --log.debug
 
+.PHONY: clean
 clean:
 	go clean
 	rm -rf ./bin/swift_exporter ./swift_exporter
 
+.PHONY: pack
 pack: build
 	mkdir -p swift_exporter
 	mkdir -p swift_exporter/bin
@@ -20,11 +22,12 @@ pack: build
 	cp -r conf/ swift_exporter/
 	tar cvf swift_exporter.tar swift_exporter
 
-# docker
-dbuild: pack
+.PHONY: docker-build
+docker-build: pack
 	docker build --force-rm -t swift_exporter .
 
-drun:
+.PHONY: docker-run
+docker-run:
 	docker run \
 		-itd -p 9150:9150 \
 		-v /etc/swift:/etc/swift \
@@ -32,8 +35,10 @@ drun:
 		--name swift_exporter \
 		swift_exporter --log.debug
 
-dexec:
+.PHONY: docker-exec
+docker-exec:
 	docker exec -it swift_exporter /bin/sh
 
-dclean: clean
+.PHONY: docker-clean
+docker-clean: clean
 	docker rm -f swift_exporter; docker rmi swift_exporter
