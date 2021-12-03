@@ -2,6 +2,26 @@
 
 OpenStack Swift Exporter for Prometheus.
 
+## Installation and Usage
+
+### Systemd
+
+```bash
+make pack
+cp systemd/swift-exporter.service /usr/lib/systemd/system/
+mv swift_exporter /opt/
+
+systemctl start swift-exporter.service
+systemctl enable swift-exporter.service
+```
+
+### Docker
+
+```bash
+make docker-build
+make docker-run
+```
+
 ## Collectors
 
 You can use http parameters to filter the collector used:
