@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/cqroot/openstack_swift_exporter/collector"
-	exporter "github.com/cqroot/openstack_swift_exporter/collector"
+	"github.com/cqroot/openstack_swift_exporter/internal"
 )
 
 var (
@@ -41,7 +41,15 @@ func init() {
 			return "", fmt.Sprintf(" - %s:%d -", filename, f.Line)
 		},
 	})
-	logrus.SetReportCaller(true)
+
+	// Print hello info
+	logrus.Info("**************************************************")
+	logrus.Info("*                                                *")
+	logrus.Info("*            OpenStack Swift Exporter            *")
+	logrus.Infof("*                   %8s                     *", internal.BuildVersion)
+	logrus.Info("*                                                *")
+	logrus.Info("**************************************************")
+	logrus.Info("")
 
 	// Viper set default
 	viper.SetDefault("web.max-requests", "30")
@@ -69,15 +77,15 @@ func init() {
 	}
 
 	// Debug and Verbose
+	if viper.GetBool("log.verbose") {
+		logrus.SetReportCaller(true)
+		logrus.Info("Enabling verbose output")
+	}
 	if viper.GetBool("log.debug") {
 		logrus.SetLevel(logrus.DebugLevel)
 		logrus.Debug("Enabling debug output")
 	} else {
 		logrus.SetLevel(logrus.InfoLevel)
-	}
-	if viper.GetBool("log.verbose") {
-		logrus.SetReportCaller(true)
-		logrus.Info("Enabling verbose output")
 	}
 }
 
@@ -118,7 +126,7 @@ func newHandler(maxRequests int) *handler {
 }
 
 func (h *handler) innerHandler(filters ...string) http.Handler {
-	collector, err := exporter.NewSwiftCollector(filters...)
+	collector, err := collector.NewSwiftCollector(filters...)
 	if err != nil {
 		logrus.Warn("Couldn't create filtered metrics handler:", err)
 	}
@@ -158,7 +166,7 @@ func main() {
 <html>
 <head><title>Swift Exporter v` + "0.0.1" + `</title></head>
 <body>
-<h1>Swift Exporter ` + "0.0.1" + `</h1>
+<h1>Swift Exporter ` + internal.BuildVersion + `</h1>
 <p><a href='` + viper.GetString("web.telemetry-path") + `'>Metrics</a></p>
 </body>
 </html>

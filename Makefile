@@ -1,13 +1,12 @@
 .PHONY: build
 build:
-	CGO_ENABLED=0 go build -o bin/swift_exporter main.go
+	@BuildVersion=$$(git describe --tags --abbrev=0); \
+	  echo "Build Version: $${BuildVersion}"; \
+	  sed -i "s/BuildVersion string = \"[^\"]*\"/BuildVersion string = \"$${BuildVersion}\"/" internal/version.go
+	@CGO_ENABLED=0 go build -o bin/swift_exporter main.go
 
 .PHONY: run
 run: pack
-	@echo ''
-	@echo '**************************************************'
-	@echo '*                 Swift Exporter                 *'
-	@echo '**************************************************'
 	@echo ''
 	@swift_exporter/bin/swift_exporter --config swift_exporter/conf/swift_exporter.yml
 
