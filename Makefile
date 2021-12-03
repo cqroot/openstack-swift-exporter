@@ -4,8 +4,12 @@ build:
 
 .PHONY: run
 run: pack
-	CGO_ENABLED=0 go build -o bin/swift_exporter main.go
-	bin/swift_exporter --log.debug
+	@echo ''
+	@echo '**************************************************'
+	@echo '*                 Swift Exporter                 *'
+	@echo '**************************************************'
+	@echo ''
+	@swift_exporter/bin/swift_exporter --config swift_exporter/conf/swift_exporter.yml
 
 .PHONY: clean
 clean:
@@ -20,7 +24,6 @@ pack: build
 	cp -r bin systemd swift_exporter/
 	cp bin/update_swift_info.py swift_exporter/bin/
 	cp -r conf/ swift_exporter/
-	tar cvf swift_exporter.tar swift_exporter
 
 .PHONY: docker-build
 docker-build: pack

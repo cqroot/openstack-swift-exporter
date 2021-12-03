@@ -46,7 +46,7 @@ func NewSwiftCollector(filters ...string) (*SwiftCollector, error) {
 	collector := &SwiftCollector{
 		Collectors: make(map[string]Collector),
 	}
-	logrus.Debug("Creating swift collector")
+	logrus.Debug("Creating swift collector: ", filters)
 
 	if len(filters) == 0 {
 		filters = []string{

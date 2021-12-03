@@ -21,11 +21,13 @@ import (
 )
 
 var (
-	listenAddress = flag.String("web.listen-address", ":9150", "Address on which to expose metrics and web interface.")
-	metricPath    = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
-	debug         = flag.Bool("log.debug", false, "Output debug information.")
-	verbose       = flag.Bool("log.verbose", false, "Output file name and line number.")
-	config        = flag.StringP("config", "c", ".", "Specify the configuration file.")
+	listenAddress  = flag.String("web.listen-address", ":9150", "Address on which to expose metrics and web interface.")
+	metricPath     = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
+	maxRequests    = flag.Int("web.max-requests", 30, "Maximum number of parallel scrape requests. Use 0 to disable.")
+	debug          = flag.Bool("log.debug", false, "Output debug information.")
+	verbose        = flag.Bool("log.verbose", false, "Output file name and line number.")
+	config         = flag.StringP("config", "c", ".", "Specify the configuration file.")
+	defaultFilters = []string{"server"}
 )
 
 func init() {
@@ -42,6 +44,7 @@ func init() {
 	logrus.SetReportCaller(true)
 
 	// Viper set default
+	viper.SetDefault("web.max-requests", "30")
 	viper.SetDefault("web.listen-address", ":9150")
 	viper.SetDefault("web.telemetry-path", "/metrics")
 	viper.SetDefault("log.debug", false)
@@ -100,30 +103,56 @@ func initCollector() {
 	scheduler.StartAsync()
 }
 
+type handler struct {
+	unfilteredHandler http.Handler
+	maxRequests       int
+}
+
+func newHandler(maxRequests int) *handler {
+	h := &handler{
+		maxRequests: maxRequests,
+	}
+	logrus.Debug("Max requests: ", h.maxRequests)
+	h.unfilteredHandler = h.innerHandler(defaultFilters...)
+	return h
+}
+
+func (h *handler) innerHandler(filters ...string) http.Handler {
+	collector, err := exporter.NewSwiftCollector(filters...)
+	if err != nil {
+		logrus.Warn("Couldn't create filtered metrics handler:", err)
+	}
+
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(collector)
+
+	handler := promhttp.HandlerFor(
+		prometheus.Gatherers{registry},
+		promhttp.HandlerOpts{
+			ErrorHandling:       promhttp.ContinueOnError,
+			MaxRequestsInFlight: h.maxRequests,
+		},
+	)
+	return handler
+}
+
+func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	filters := r.URL.Query()["collect"]
+
+	if len(filters) == 0 {
+		logrus.Debug("Collect query filters: ", defaultFilters)
+		h.unfilteredHandler.ServeHTTP(w, r)
+		return
+	}
+	logrus.Debug("Collect query filters: ", filters)
+	filteredHandler := h.innerHandler(filters...)
+	filteredHandler.ServeHTTP(w, r)
+}
+
 func main() {
 	initCollector()
 
-	http.HandleFunc(viper.GetString("web.telemetry-path"), func(w http.ResponseWriter, r *http.Request) {
-		filters := r.URL.Query()["collect"]
-		collector, err := exporter.NewSwiftCollector(filters...)
-		if err != nil {
-			logrus.Warn("Couldn't create filtered metrics handler:", err)
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(fmt.Sprintf("Couldn't create filtered metrics handler: %s", err)))
-			return
-		}
-
-		registry := prometheus.NewRegistry()
-		registry.MustRegister(collector)
-		handler := promhttp.HandlerFor(
-			prometheus.Gatherers{registry},
-			promhttp.HandlerOpts{
-				ErrorHandling:       promhttp.ContinueOnError,
-				MaxRequestsInFlight: 30,
-			},
-		)
-		handler.ServeHTTP(w, r)
-	})
+	http.Handle(viper.GetString("web.telemetry-path"), newHandler(viper.GetInt("web.max-requests")))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`
 <html>

@@ -1,6 +1,7 @@
 web:
   listen-address: :9150
   telemetry-path: /metrics
+  max-requests: 30
 log:
   debug: true
   verbose: false
