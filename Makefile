@@ -1,8 +1,8 @@
 .PHONY: build
 build:
 	@BuildVersion=$$(git describe --tags --abbrev=0); \
-	  echo "Build Version: $${BuildVersion}"; \
-	  sed -i "s/BuildVersion string = \"[^\"]*\"/BuildVersion string = \"$${BuildVersion}\"/" internal/version.go
+		echo "Build Version: $${BuildVersion}"; \
+		sed -i "s/BuildVersion string = \"[^\"]*\"/BuildVersion string = \"$${BuildVersion}\"/" internal/version.go
 	@CGO_ENABLED=0 go build -o bin/swift_exporter main.go
 
 .PHONY: run
@@ -23,6 +23,11 @@ pack: build
 	cp -r bin systemd swift_exporter/
 	cp bin/update_swift_info.py swift_exporter/bin/
 	cp -r conf/ swift_exporter/
+
+.PHONY: tar
+tar: pack
+	BuildVersion=$$(git describe --tags --abbrev=0); \
+		tar cvf swift_exporter-$${BuildVersion}-$$(arch).tar swift_exporter
 
 .PHONY: docker-build
 docker-build: pack
