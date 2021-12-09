@@ -1,3 +1,4 @@
 bin/swift_exporter
 swift_exporter/
 swift_exporter.tar
+swift_exporter-v*.tar
