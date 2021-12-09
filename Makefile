@@ -7,7 +7,7 @@ build:
 
 .PHONY: run
 run: pack
-	@echo ''
+	@rm -rf swift_exporter
 	@swift_exporter/bin/swift_exporter --config swift_exporter/conf/swift_exporter.yml
 
 .PHONY: clean
