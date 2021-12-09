@@ -1,5 +1,8 @@
 # OpenStack Swift Exporter
 
+![](https://img.shields.io/github/go-mod/go-version/cqroot/openstack_swift_exporter)
+![](https://img.shields.io/github/v/release/cqroot/openstack_swift_exporter)
+
 OpenStack Swift Exporter for Prometheus.
 
 ## Installation and Usage
