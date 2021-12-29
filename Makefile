@@ -31,7 +31,8 @@ tar: pack
 
 .PHONY: docker-build
 docker-build: pack
-	docker build --force-rm -t swift_exporter .
+	@BuildVersion=$$(git describe --tags --abbrev=0); \
+		docker build --force-rm -t swift_exporter:$${BuildVersion:1} .
 
 .PHONY: docker-run
 docker-run:
