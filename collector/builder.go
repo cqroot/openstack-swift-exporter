@@ -2,7 +2,7 @@ package collector
 
 import (
 	"encoding/json"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 type SwiftInfo struct {
@@ -26,7 +26,7 @@ var swiftInfo = &SwiftInfo{}
 func UpdateSwiftInfo(jsonBytes []byte) {
 	err := json.Unmarshal(jsonBytes, swiftInfo)
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal().Err(err)
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 // Namespace defines the common namespace to be used by all metrics.
@@ -46,7 +46,7 @@ func NewSwiftCollector(filters ...string) (*SwiftCollector, error) {
 	collector := &SwiftCollector{
 		Collectors: make(map[string]Collector),
 	}
-	logrus.Debug("Creating swift collector: ", filters)
+	log.Debug().Msgf("Creating swift collector: %v", filters)
 
 	if len(filters) == 0 {
 		filters = []string{
@@ -88,7 +88,7 @@ func execute(name string, collector Collector, ch chan<- prometheus.Metric) {
 	duration := time.Since(begin)
 
 	if err != nil {
-		logrus.Error("Update ", name, " error: ", err)
+		log.Error().Str("Update", name).Str("error", err.Error())
 		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, 0, name)
 	} else {
 		ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, 1, name)

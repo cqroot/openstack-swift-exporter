@@ -1,18 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
-	"runtime"
 	"time"
 
 	"github.com/go-co-op/gocron"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
@@ -31,25 +30,20 @@ var (
 )
 
 func init() {
-	// Logrus init
-	logrus.SetFormatter(&logrus.TextFormatter{
-		ForceQuote:      true,
-		FullTimestamp:   true,
-		TimestampFormat: "2006-01-02 15:04:05",
-		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-			filename := path.Base(f.File)
-			return "", fmt.Sprintf(" - %s:%d -", filename, f.Line)
-		},
-	})
+	// Zerolog init
+	zerolog.TimestampFunc = func() time.Time {
+		return time.Now().In(time.Local)
+	}
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "2006-01-02 15:04:05 Mon"})
 
 	// Print hello info
-	logrus.Info("**************************************************")
-	logrus.Info("*                                                *")
-	logrus.Info("*            OpenStack Swift Exporter            *")
-	logrus.Infof("*                   %8s                     *", internal.BuildVersion)
-	logrus.Info("*                                                *")
-	logrus.Info("**************************************************")
-	logrus.Info("")
+	log.Info().Msg("**************************************************")
+	log.Info().Msg("*                                                *")
+	log.Info().Msg("*            OpenStack Swift Exporter            *")
+	log.Info().Msgf("*                   %8s                     *", internal.BuildVersion)
+	log.Info().Msg("*                                                *")
+	log.Info().Msg("**************************************************")
+	log.Info().Msg("")
 
 	// Viper set default
 	viper.SetDefault("web.max-requests", "30")
@@ -73,26 +67,25 @@ func init() {
 	}
 	err := viper.ReadInConfig()
 	if err != nil {
-		logrus.Info(err)
+		log.Warn().Err(err)
 	}
 
 	// Debug and Verbose
 	if viper.GetBool("log.verbose") {
-		logrus.SetReportCaller(true)
-		logrus.Info("Enabling verbose output")
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC822}).With().Caller().Logger()
 	}
 	if viper.GetBool("log.debug") {
-		logrus.SetLevel(logrus.DebugLevel)
-		logrus.Debug("Enabling debug output")
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	} else {
-		logrus.SetLevel(logrus.InfoLevel)
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
+	log.Debug().Msg("Enabling debug output")
 }
 
 func initCollector() {
 	executable, err := os.Executable()
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal().Err(err)
 	}
 	executionPath := path.Dir(executable)
 	collectorPath := path.Join(executionPath, "update_swift_info.py")
@@ -101,7 +94,7 @@ func initCollector() {
 		cmd := exec.Command("python", collectorPath)
 		stdout, err := cmd.Output()
 		if err != nil {
-			logrus.Fatal(err)
+			log.Fatal().Err(err)
 		}
 		collector.UpdateSwiftInfo(stdout)
 	}
@@ -120,7 +113,7 @@ func newHandler(maxRequests int) *handler {
 	h := &handler{
 		maxRequests: maxRequests,
 	}
-	logrus.Debug("Max requests: ", h.maxRequests)
+	log.Debug().Msgf("Max requests: %d", h.maxRequests)
 	h.unfilteredHandler = h.innerHandler(defaultFilters...)
 	return h
 }
@@ -128,7 +121,7 @@ func newHandler(maxRequests int) *handler {
 func (h *handler) innerHandler(filters ...string) http.Handler {
 	collector, err := collector.NewSwiftCollector(filters...)
 	if err != nil {
-		logrus.Warn("Couldn't create filtered metrics handler:", err)
+		log.Warn().Msgf("Couldn't create filtered metrics handler: %s", err.Error())
 	}
 
 	registry := prometheus.NewRegistry()
@@ -148,11 +141,11 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	filters := r.URL.Query()["collect"]
 
 	if len(filters) == 0 {
-		logrus.Debug("Collect query filters: ", defaultFilters)
+		log.Debug().Msgf("Collect query filters: %v", defaultFilters)
 		h.unfilteredHandler.ServeHTTP(w, r)
 		return
 	}
-	logrus.Debug("Collect query filters: ", filters)
+	log.Debug().Msgf("Collect query filters: %v", filters)
 	filteredHandler := h.innerHandler(filters...)
 	filteredHandler.ServeHTTP(w, r)
 }
@@ -173,6 +166,6 @@ func main() {
         `))
 	})
 
-	logrus.Info("Providing metrics at ", viper.GetString("web.listen-address"), viper.GetString("web.telemetry-path"))
-	logrus.Fatal(http.ListenAndServe(viper.GetString("web.listen-address"), nil))
+	log.Info().Msgf("Providing metrics at %s%s", viper.GetString("web.listen-address"), viper.GetString("web.telemetry-path"))
+	log.Fatal().Err(http.ListenAndServe(viper.GetString("web.listen-address"), nil))
 }
